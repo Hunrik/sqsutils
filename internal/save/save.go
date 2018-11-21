@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Hunrik/sqsutils/internal/sqsworker"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/paulbellamy/ratecounter"
@@ -38,9 +37,7 @@ func Save(queue, file string, regex *regexp.Regexp) error {
 
 	h := &handler{w: w, rate: rate}
 
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1")},
-	)
+	sess, err := session.NewSession()
 	if err != nil {
 		return err
 	}
@@ -52,12 +49,12 @@ func Save(queue, file string, regex *regexp.Regexp) error {
 		FetchThreads:         30,
 		AWSConfig:            sess,
 		SQSVissiblityTimeout: 600,
+		WaitTimeSeconds:      1,
 	}
 	wrk, err := sqsworker.New(opts)
 	if err != nil {
 		return err
 	}
-
 	wrk.Start()
 
 	c := make(chan os.Signal, 1)
@@ -71,7 +68,6 @@ func Save(queue, file string, regex *regexp.Regexp) error {
 	wrk.Stop()
 	w.Flush()
 	time.Sleep(1 * time.Second)
-	os.Exit(0)
 	return nil
 }
 
@@ -83,7 +79,7 @@ type handler struct {
 }
 
 func (h *handler) Handle(message sqs.Message) bool {
-	if h.regex == nil || !h.regex.MatchString(*message.Body) {
+	if h.regex != nil && !h.regex.MatchString(*message.Body) {
 		return false
 	}
 	h.Lock()

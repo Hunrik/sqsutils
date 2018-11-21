@@ -95,7 +95,6 @@ func New(options Options) (*Worker, error) {
 		Factor: 2,
 		Jitter: true,
 	}
-
 	w := &Worker{
 		handler:              options.Handler,
 		messageCh:            make(chan message, options.MaxPrefechCount),
@@ -144,10 +143,10 @@ func (w *Worker) spawnFetchThread() {
 				w.Lock()
 				sleep := w.backoff.Duration()
 				w.Unlock()
-				time.Sleep(sleep)
 				if w.logger != nil {
 					w.logger.Error("SQS Fetch error", zap.Error(err))
 				}
+				time.Sleep(sleep)
 				continue
 			}
 			w.Lock()

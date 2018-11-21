@@ -51,9 +51,9 @@ func main() {
 			},
 		},
 		{
-			Name:    "save",
-			Aliases: []string{"s"},
-			Usage:   "Saves documents from queue to file",
+			Name:    "move",
+			Aliases: []string{"mv"},
+			Usage:   "Moves documents from queue to file",
 			Action: func(c *cli.Context) error {
 				args := c.Args()
 				queue := args.First()
