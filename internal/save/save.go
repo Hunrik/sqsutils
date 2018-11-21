@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
 	"sync"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 )
 
 // Save .
-func Save(queue, file string) error {
+func Save(queue, file string, regex *regexp.Regexp) error {
 	f, err := os.Create(file)
 	if err != nil {
 		return err
@@ -44,12 +45,13 @@ func Save(queue, file string) error {
 		return err
 	}
 	opts := sqsworker.Options{
-		Handler:         h,
-		MaxPrefechCount: 1000,
-		MaxWorkerCount:  100,
-		QueueURL:        queue,
-		FetchThreads:    30,
-		AWSConfig:       sess,
+		Handler:              h,
+		MaxPrefechCount:      1000,
+		MaxWorkerCount:       100,
+		QueueURL:             queue,
+		FetchThreads:         30,
+		AWSConfig:            sess,
+		SQSVissiblityTimeout: 600,
 	}
 	wrk, err := sqsworker.New(opts)
 	if err != nil {
@@ -74,12 +76,16 @@ func Save(queue, file string) error {
 }
 
 type handler struct {
-	w    *bufio.Writer
-	rate *ratecounter.RateCounter
+	w     *bufio.Writer
+	rate  *ratecounter.RateCounter
+	regex *regexp.Regexp
 	sync.Mutex
 }
 
 func (h *handler) Handle(message sqs.Message) bool {
+	if h.regex == nil || !h.regex.MatchString(*message.Body) {
+		return false
+	}
 	h.Lock()
 	h.w.WriteString(*message.Body + "\n")
 	h.rate.Incr(1)

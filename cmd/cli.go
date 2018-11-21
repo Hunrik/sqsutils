@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"regexp"
 	"sort"
 
 	"github.com/Hunrik/sqsutils/internal/load"
@@ -63,8 +64,18 @@ func main() {
 				if file == "" {
 					return errors.New("Missing file parameter")
 				}
-
-				return save.Save(file, queue)
+				regex := &regexp.Regexp{}
+				regexPattern := c.String("regex")
+				if regexPattern != "" {
+					regex = regexp.MustCompile(regexPattern)
+				}
+				return save.Save(queue, file, regex)
+			},
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "regex, r",
+					Value: "",
+				},
 			},
 		},
 	}
